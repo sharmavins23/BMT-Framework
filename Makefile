@@ -33,7 +33,7 @@ BUILD_DIR = build
 SRC_DIR = src
 
 # File to make
-all : kernel.img
+all : clean kernel.img
 
 # Cleans up all object files and build directory
 clean : 
