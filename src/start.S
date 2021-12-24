@@ -15,9 +15,12 @@ _start:
             ldr         x1, =SET_BIT3
             str         x1, [x0, #GPFSEL2]
 
-            b           blinkled            // Go to C code for blinking control
+looop:      bl          turnOnLED           // Turn on the LED
+            bl          delay               // Stall the CPU pipeline
+            bl          turnOffLED          // Turn off the LED
+            bl          delay               // Stall the CPU pipeline
+            b           looop               // Repeat
 
-.global     delay
 delay:      mov         x10, #0             // Clear r10
 
 dloop:      add         x10, x10, #1        // Add 1
@@ -26,12 +29,10 @@ dloop:      add         x10, x10, #1        // Add 1
 
 dend:       ret                             // Otherwise, move on
 
-.global     turnOnLED
 turnOnLED:  ldr         x1, =SET_BIT21      // Load pin 21's address
             str         x1, [x0, #GPSET0]   // Set pin 21 to HIGH
             ret
 
-.global     turnOffLED
 turnOffLED: ldr         x1, =SET_BIT21      // Load pin 21's address
             str         x1, [x0, #GPCLR0]   // Set pin 21 to LOW
             ret
