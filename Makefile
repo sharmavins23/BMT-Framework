@@ -46,7 +46,7 @@ $(BUILD_DIR)/%_c.o: $(SRC_DIR)/%.c
 
 # Build targets for all assembly files
 $(BUILD_DIR)/%_s.o: $(SRC_DIR)/%.S
-	$(ARMGNU)-gcc $(COPS) -MMD -c $< -o $@
+	$(ARMGNU)-as $(ASMOPS) -MMD -c $< -o $@
 
 # Build targets for all files (C and assembly, wildcards for all files in directory)
 C_FILES = $(wildcard $(SRC_DIR)/*.c)
@@ -59,11 +59,11 @@ DEP_FILES = $(OBJ_FILES:%.o=%.d)
 -include $(DEP_FILES)
 
 # Build target for kernel8.img
-kernel.img: $(SRC_DIR)/linker.ld $(OBJ_FILES)
+kernel.img: $(OBJ_FILES)
 	@echo Building for RPI $(value RPI_VERSION)
 	@echo Deploy to $(value BOOTMNT)
 	@echo Using $(value ARMGNU)
-	$(ARMGNU)-ld -T $(SRC_DIR)/linker.ld -o $(BUILD_DIR)/kernel.elf $(OBJ_FILES)
+	$(ARMGNU)-ld -o $(BUILD_DIR)/kernel.elf $(OBJ_FILES)
 	$(ARMGNU)-objcopy $(BUILD_DIR)/kernel.elf -O binary $(BUILD_DIR)/kernel.img
 ifeq ($(RPI_VERSION), 4)
 	$(ARMGNU)-objcopy $(BUILD_DIR)/kernel.elf -O binary $(BOOTMNT)/kernel7l.img
