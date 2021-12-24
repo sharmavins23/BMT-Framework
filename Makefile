@@ -42,11 +42,11 @@ clean :
 
 # Build targets for all C files
 $(BUILD_DIR)/%_c.o: $(SRC_DIR)/%.c
-	$(ARMGNU)-gcc $(COPS) -MMD -c $< -o $@
+	$(ARMGNU)-gcc $(COPS) -c $< -o $@
 
 # Build targets for all assembly files
 $(BUILD_DIR)/%_s.o: $(SRC_DIR)/%.S
-	$(ARMGNU)-as $(ASMOPS) -MMD -c $< -o $@
+	$(ARMGNU)-as $(ASMOPS) -c $< -o $@
 
 # Build targets for all files (C and assembly, wildcards for all files in directory)
 C_FILES = $(wildcard $(SRC_DIR)/*.c)
