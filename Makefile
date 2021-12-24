@@ -1,81 +1,72 @@
-# ! Change this to your specific Raspberry Pi Version!
-RPi_VERSION ?= 4
+# !!! Change this to your specific Raspberry Pi version
+RPI_VERSION ?= 4
 
-# Change this to your AARCH64 Cross Compiler, if you have a different one
-AARCH64CC   ?= aarch64-none-elf
+# ARM cross compiler toolchain
+ARMGNU ?= aarch64-none-elf
 
-# ==============================================================================
-# RPI structure flags
-
-# RPi Version - Defaults to 4b
-ifeq ($(RPi_VERSION), 4)
-CPU_VER     ?= cortex-a72
-else ifeq ($(RPi_VERSION), 3)
-CPU_VER     ?= cortex-a53
-else
-CPU_VER     ?= cortex-a72
-endif
-
-# ==============================================================================
-# File directory locations
-
-# Copy these files to SD for deployment
-ifeq ($(RPi_VERSION), 4)
-BOOTMNT     ?= /boot/boot4
-else ifeq ($(RPi_VERSION), 3)
-BOOTMNT     ?=  /boot/boot3
-else
-BOOTMNT     ?=  /boot/boot4
-endif
-
-# Temporary directory for all object files
-BUILD_DIR   = /build
-
-# Directory for source code
-SRC_DIR     = /src
-
-# ==============================================================================
-# Compile flags and files
-
-# GCC operations for C code
-COPS        = -DRPI_VERSION=$(RPi_VERSION)     \
-	        -Wall                              \
-	        -nostdlib                          \
-	        -nostartfiles                      \
-	        -ffreestanding                     \
-	        -Iinclude                          \
-	        -mgeneral-regs-only                \
-	        -mcpu=$(CPU_VER)
-
-# GCC operations for Assembly code
-ASMOPS      = -Iinclude
-
-# Compiled file locations
-C_FILES     = $(wildcard $(SRC_DIR)/*.c)
-ASM_FILES   = $(wildcard $(SRC_DIR)/*.S)
-OBJ_FILES   = $(C_FILES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%_c.o)
-OBJ_FILES   += $(ASM_FILES:$(SRC_DIR)/%.S=$(BUILD_DIR)/%_s.o)
-
-# ==============================================================================
-# Build targets
-
-# Ran when the makefile is run via `make`
-all         : clean kernel8.img
-
-# Clean all intermediate files, and the compiled kernel image
-clean       : del $(BOOTMNT)/*.img
-			del $(BUILD_DIR)/*
-
-# Build the kernel image to deploy onto SD card
-kernel8.img : $(SRC_DIR)/linker.ld $(OBJ_FILES)
-			@echo Building for RPi $(value RPI_VERSION)
-			@echo Deploy to $(value BOOTMNT)
-			@echo Using $(value AARCH64CC)
-			$(AARCH64CC)-ld -T $(SRC_DIR)/linker.ld -o $(BUILD_DIR)/kernel.elf $(OBJ_FILES)
-			$(ARMGNU)-objcopy $(BUILD_DIR)/kernel.elf -O binary $(BUILD_DIR)/kernel.img
+# Set the CPU architecture based on the Raspberry Pi version
 ifeq ($(RPI_VERSION), 4)
-			$(ARMGNU)-objcopy $(BUILD_DIR)/kernel.elf -O binary $(BUILD_DIR)/kernel7l.img
-else ifeq ($(RPI_VERSION), 3)
-			$(ARMGNU)-objcopy $(BUILD_DIR)/kernel.elf -O binary $(BUILD_DIR)/kernel7.img
+CPU_VER ?= cortex-a72
 else
-			$(ARMGNU)-objcopy $(BUILD_DIR)/kernel.elf -O binary $(BUILD_DIR)/kernel7l.img
+CPU_VER ?= cortex-a53
+endif
+
+# Files to load to SD card (to deploy)
+BOOTMNT ?= boot
+ifeq ($(RPI_VERSION), 4)
+BOOTMNT = boot\boot4
+else ifeq ($(RPI_VERSION), 3)
+BOOTMNT = boot\boot3
+endif
+
+# C operations (to compile properly)
+COPS = -DRPI_VERSION=$(RPI_VERSION) -Wall -nostdlib -nostartfiles -ffreestanding \
+	   -Iinclude -mgeneral-regs-only -mcpu=$(CPU_VER)
+
+# ASM operations (to compile properly)
+ASMOPS = -Iinclude
+
+# Directory for object files to live (and die)
+BUILD_DIR = build
+
+# Directory for OS source code to live
+SRC_DIR = src
+
+# File to make
+all : kernel.img
+
+# Cleans up all object files and build directory
+clean : 
+	del /Q $(BUILD_DIR)\*
+	del $(BOOTMNT)\*.img
+
+# Build targets for all C files
+$(BUILD_DIR)/%_c.o: $(SRC_DIR)/%.c
+	$(ARMGNU)-gcc $(COPS) -MMD -c $< -o $@
+
+# Build targets for all assembly files
+$(BUILD_DIR)/%_s.o: $(SRC_DIR)/%.S
+	$(ARMGNU)-gcc $(COPS) -MMD -c $< -o $@
+
+# Build targets for all files (C and assembly, wildcards for all files in directory)
+C_FILES = $(wildcard $(SRC_DIR)/*.c)
+ASM_FILES = $(wildcard $(SRC_DIR)/*.S)
+OBJ_FILES = $(C_FILES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%_c.o)
+OBJ_FILES += $(ASM_FILES:$(SRC_DIR)/%.S=$(BUILD_DIR)/%_s.o)
+
+# Build targets for dependency files
+DEP_FILES = $(OBJ_FILES:%.o=%.d)
+-include $(DEP_FILES)
+
+# Build target for kernel8.img
+kernel.img: $(SRC_DIR)/linker.ld $(OBJ_FILES)
+	@echo Building for RPI $(value RPI_VERSION)
+	@echo Deploy to $(value BOOTMNT)
+	@echo Using $(value ARMGNU)
+	$(ARMGNU)-ld -T $(SRC_DIR)/linker.ld -o $(BUILD_DIR)/kernel.elf $(OBJ_FILES)
+	$(ARMGNU)-objcopy $(BUILD_DIR)/kernel.elf -O binary $(BUILD_DIR)/kernel.img
+ifeq ($(RPI_VERSION), 4)
+	$(ARMGNU)-objcopy $(BUILD_DIR)/kernel.elf -O binary $(BOOTMNT)/kernel7l.img
+else
+	$(ARMGNU)-objcopy $(BUILD_DIR)/kernel.elf -O binary $(BOOTMNT)/kernel7.img
+endif

@@ -1,8 +1,6 @@
 .section    .init
 .global     _start
 
-#include    "blink_LED.c"
-
 .equ        BASE,       0xfe200000          // Base address
 .equ        GPFSEL2,    0x08		        // FSEL2 register offset 
 .equ        GPSET0,     0x1c		        // GPSET0 register offset
@@ -12,28 +10,28 @@
 .equ        COUNTER,    0xf0000
 
 _start:
-            ldr         r0, =BASE
-            ldr         r2, =COUNTER
-            ldr         r1, =SET_BIT3
-            str         r1, [r0, #GPFSEL2]
+            ldr         x0, =BASE
+            ldr         x2, =COUNTER
+            ldr         x1, =SET_BIT3
+            str         x1, [x0, #GPFSEL2]
 
             b           blinkled            // Go to C code for blinking control
 
 .global     delay
-delay:      mov         r10, #0             // Clear r10
+delay:      mov         x10, #0             // Clear r10
 
-dloop:      add         r10, r10, #1        // Add 1
-            cmp         r10, r2             // Check if overflow occurs
+dloop:      add         x10, x10, #1        // Add 1
+            cmp         x10, x2             // Check if overflow occurs
             bne         dloop               // If not, go back
 
-dend:       bx          lr                  // Otherwise, move on
+dend:       ret                             // Otherwise, move on
 
 .global     turnOnLED
-turnOnLED:  ldr         r1, =SET_BIT21      // Load pin 21's address
-            str         r1, [r0, #GPSET0]   // Set pin 21 to HIGH
-            bx          lr
+turnOnLED:  ldr         x1, =SET_BIT21      // Load pin 21's address
+            str         x1, [x0, #GPSET0]   // Set pin 21 to HIGH
+            ret
 
 .global     turnOffLED
-turnOffLED: ldr         r1, =SET_BIT21      // Load pin 21's address
-            str         r1, [r0, #GPCLR0]   // Set pin 21 to LOW
-            bx          lr
+turnOffLED: ldr         x1, =SET_BIT21      // Load pin 21's address
+            str         x1, [x0, #GPCLR0]   // Set pin 21 to LOW
+            ret
